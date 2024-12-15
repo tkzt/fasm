@@ -2,5 +2,8 @@
   "cSpell.words": [
     "fasm",
     "onupdate"
+  ],
+  "python.analysis.extraPaths": [
+    "./app"
   ]
 }
