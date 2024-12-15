@@ -17,7 +17,7 @@ from models.user import (
     UpdateUserRequest,
 )
 from utils.auth import AuthRequired
-from utils.response import create_response
+from utils.response import make_response
 from utils.security import gen_pwd_hash
 from context_vars import request_context_var
 
@@ -38,7 +38,7 @@ async def create_user(create_user_request: CreateUserRequest):
     except IntegrityError as err:
         if "UniqueViolationError" in str(err):
             raise InternalError(StateCode.USER_REPEAT)
-    return create_response(data=BaseUserResponse.model_validate(new_user))
+    return make_response(data=BaseUserResponse.model_validate(new_user))
 
 
 @router.patch("/{user_id}", dependencies=[Depends(AuthRequired(Permission.SYSTEM))])
@@ -53,7 +53,7 @@ async def update_user(update_user_request: UpdateUserRequest, user_id: UUID):
     except IntegrityError as err:
         if "UniqueViolationError" in str(err):
             raise InternalError(StateCode.USER_REPEAT)
-    return create_response(data=BaseUserResponse.model_validate(the_user))
+    return make_response(data=BaseUserResponse.model_validate(the_user))
 
 
 @router.get("", dependencies=[Depends(AuthRequired(Permission.SYSTEM))])
@@ -71,7 +71,7 @@ async def get_users(get_user_request: GetUserRequest = Depends()):
         Params(page=get_user_request.page, size=get_user_request.size),
         transformer=lambda x: [BaseUserResponse.model_validate(user) for user in x],
     )
-    return create_response(data=res_paginated)
+    return make_response(data=res_paginated)
 
 
 @router.get("/me")
@@ -88,4 +88,4 @@ async def get_self_info():
         pass
     else:
         current_user.permissions = ALL_PERMISSIONS
-    return create_response(data=current_user)
+    return make_response(data=current_user)

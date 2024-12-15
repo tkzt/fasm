@@ -13,7 +13,7 @@ from models.states import StateCode, InternalError
 from sqlalchemy import AsyncAdaptedQueuePool
 from slowapi.errors import RateLimitExceeded
 
-from utils.response import create_response
+from utils.response import make_response
 from settings import settings
 from utils.logger import setup_logger, logger
 from routers import base_router
@@ -98,7 +98,7 @@ async def rate_limit_exceeded_exception_handler(
     return JSONResponse(
         status_code=HTTPStatus.TOO_MANY_REQUESTS,
         content=json.loads(
-            create_response(
+            make_response(
                 request.state.trace_id,
                 data=str(exception),
                 code=StateCode.REQUEST_LIMIT_ERROR,
@@ -115,7 +115,7 @@ async def validation_exception_handler(
     return JSONResponse(
         status_code=HTTPStatus.BAD_REQUEST,
         content=json.loads(
-            create_response(
+            make_response(
                 request.state.trace_id,
                 data=exception.errors(),
                 code=StateCode.VALIDATION_ERROR,
@@ -129,7 +129,7 @@ async def http_exception_handler(request: Request, exception: HTTPException):
     await _log_error_request(request, exception, "http_exception_handler")
     exception_response = JSONResponse(
         status_code=exception.status_code,
-        content=create_response(
+        content=make_response(
             request.state.trace_id,
             data=None,
             code=StateCode.INTERNAL_ERROR,
@@ -147,7 +147,7 @@ async def turing_exception_handler(request: Request, exception: InternalError):
     return JSONResponse(
         status_code=exception.http_status_code,
         content=json.loads(
-            create_response(
+            make_response(
                 request.state.trace_id,
                 data=exception.data,
                 code=exception.error_code,
@@ -162,7 +162,7 @@ async def general_exception_handler(request: Request, exception: Exception):
     await _log_error_request(request, exception, "general_exception_handler")
     return JSONResponse(
         status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-        content=create_response(
+        content=make_response(
             request.state.trace_id,
             data=None,
             code=StateCode.UNKNOWN_ERROR,

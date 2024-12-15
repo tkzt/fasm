@@ -16,7 +16,7 @@ class BaseResponse(BaseModel, Generic[T]):
     data: T | None = None
 
 
-def create_response(
+def make_response(
     trace_id: str | None = None,
     data: T | None = None,
     code: int | StateCode | None = None,

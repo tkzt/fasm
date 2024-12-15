@@ -13,7 +13,7 @@ from models.states import InternalError, StateCode
 from utils import generate_random_code
 from utils.auth import AuthRequired
 from utils.captcha import gen_captcha
-from utils.response import create_response
+from utils.response import make_response
 from utils.security import create_access_token, create_refresh_token, verify_pwd
 from app_globals import redis_util, limiter
 from context_vars import request_context_var
@@ -32,7 +32,7 @@ async def create_token(create_token_request: CreateTokenRequest):
     if not pwd_matched:
         raise InternalError(StateCode.NOT_AUTHENTICATED)
 
-    return create_response(
+    return make_response(
         data=CreateTokenResponse(
             access_token=create_access_token(the_user.id),
             refresh_token=create_refresh_token(the_user.id),
@@ -42,7 +42,7 @@ async def create_token(create_token_request: CreateTokenRequest):
 
 @router.put("/tokens")
 async def refresh_token(auth: AuthRequired = Depends(AuthRequired)):
-    return create_response(
+    return make_response(
         data=RefreshTokenResponse(
             access_token=create_access_token(auth.current_user.id),
         )
@@ -57,7 +57,7 @@ async def create_captcha(request: Request):
     captcha = gen_captcha(random_code)
     await redis_util.set_cache(request_ctx.trace_id, random_code, ex=60)
 
-    return create_response(
+    return make_response(
         data=CaptchaResponse(
             captcha=captcha,
         )

@@ -16,7 +16,7 @@ from models.role import (
 )
 from models.states import InternalError, StateCode
 from utils.auth import AuthRequired
-from utils.response import create_response
+from utils.response import make_response
 
 
 router = APIRouter(
@@ -36,7 +36,7 @@ async def create_role(create_role_request: CreateRoleRequest):
     except IntegrityError as err:
         if "UniqueViolationError" in str(err):
             raise InternalError(StateCode.ROLE_REPEAT)
-    return create_response(data=BaseRoleResponse.model_validate(obj=new_role))
+    return make_response(data=BaseRoleResponse.model_validate(obj=new_role))
 
 
 @router.patch("/{role_id}")
@@ -51,7 +51,7 @@ async def update_role(update_role_request: UpdateRoleRequest, role_id: UUID):
     except IntegrityError as err:
         if "UniqueViolationError" in str(err):
             raise InternalError(StateCode.ROLE_REPEAT)
-    return create_response(data=BaseRoleResponse.model_validate(the_role))
+    return make_response(data=BaseRoleResponse.model_validate(the_role))
 
 
 @router.get("")
@@ -69,4 +69,4 @@ async def get_roles(get_role_request: GetRoleRequest = Depends()):
         Params(page=get_role_request.page, size=get_role_request.size),
         transformer=lambda x: [BaseRoleResponse.model_validate(role) for role in x],
     )
-    return create_response(data=res_paginated)
+    return make_response(data=res_paginated)
