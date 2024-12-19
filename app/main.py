@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse
 from fastapi_async_sqlalchemy import SQLAlchemyMiddleware
 from fastapi.middleware.cors import CORSMiddleware
 from models import RequestContext
+from models.environment import Environment
 from models.states import StateCode, InternalError
 from sqlalchemy import AsyncAdaptedQueuePool
 from slowapi.errors import RateLimitExceeded
@@ -21,9 +22,14 @@ from context_vars import request_context_var
 from app_globals import limiter
 from init_db import init as init_db
 
-app = FastAPI()
+app = (
+    FastAPI(redoc_url=None, docs_url=None)
+    if settings.ENV == Environment.PROD
+    else FastAPI()
+)
 app.include_router(base_router)
-LOG_PREFIX = f"{'-'*4}>"
+LOG_REQUEST_PREFIX = f"{'-'*4}>"
+LOG_RESPONSE_PREFIX = f"<{'-'*4}"
 app.state.limiter = limiter
 
 
@@ -58,13 +64,17 @@ async def generic_request(request: Request, call_next):
     request_context_var.set(RequestContext(trace_id=trace_id))
 
     with logger.contextualize(trace_id=request.state.trace_id):
+        logger.info(
+            f"Request: {request.method} {request.url} received. \n"
+            f"{LOG_REQUEST_PREFIX} Headers: {request.headers}."
+        )
         response = await call_next(request)
-        logger.debug(f"Response code: {response}.")
+        logger.debug(f"Response: {response}.")
         process_time = round((time.time() - start_time) * 1000, 2)
         logger.info(
             f"Request: {request.method} {request.url} handled. \n"
-            f"{LOG_PREFIX} Status code: {response.status_code}\n"
-            f"{LOG_PREFIX} Time taken: {process_time}ms."
+            f"{LOG_RESPONSE_PREFIX} Status code: {response.status_code}\n"
+            f"{LOG_RESPONSE_PREFIX} Time taken: {process_time}ms."
         )
         response.headers["x-time-taken"] = str(process_time)
         response.headers["x-trace-id"] = request.state.trace_id
@@ -81,9 +91,9 @@ async def _log_error_request(
     logger.error(f"({exception_name}) Error: {str(exception)}")
     logger.error(
         f"({exception_name}) Request details: \n"
-        f"{LOG_PREFIX} Trace ID: {trace_id}.\n"
-        f"{LOG_PREFIX} Method: {request.method}, URL: {request.url}.\n"
-        f"{LOG_PREFIX} Headers: {request.headers}.\n"
+        f"{LOG_REQUEST_PREFIX} Trace ID: {trace_id}.\n"
+        f"{LOG_REQUEST_PREFIX} Method: {request.method}, URL: {request.url}.\n"
+        f"{LOG_REQUEST_PREFIX} Headers: {request.headers}.\n"
     )
     logger.exception(exception)
 

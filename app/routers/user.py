@@ -4,7 +4,7 @@ from fastapi_async_sqlalchemy import db
 from fastapi_pagination import Params
 from fastapi_pagination.ext.sqlmodel import paginate
 from sqlalchemy.exc import IntegrityError
-from sqlmodel import or_, select
+from sqlmodel import select
 
 from models.db.user_role import User
 from models.permissions import ALL_PERMISSIONS, Permission
@@ -30,7 +30,6 @@ async def create_user(create_user_request: CreateUserRequest):
     try:
         new_user = User(
             name=create_user_request.name,
-            phone_num=create_user_request.phone_num,
             pwd_hash=gen_pwd_hash(create_user_request.pwd),
         )
         db.session.add(new_user)
@@ -62,9 +61,7 @@ async def get_users(get_user_request: GetUserRequest = Depends()):
     res_paginated = await paginate(
         db.session,
         (
-            select(User).where(
-                or_(User.name.ilike(query_pattern), User.phone_num.ilike(query_pattern))
-            )
+            select(User).where(User.name.ilike(query_pattern))
             if get_user_request.query
             else select(User)
         ).order_by(User.updated_at.desc()),
@@ -77,15 +74,13 @@ async def get_users(get_user_request: GetUserRequest = Depends()):
 @router.get("/me")
 async def get_self_info():
     request_ctx = request_context_var.get()
-    await db.session.refresh(
-        request_ctx.current_user, attribute_names=["wallets", "roles"]
-    )
+    await db.session.refresh(request_ctx.current_user, attribute_names=["roles"])
     current_user = SelfUserResponse.model_validate(request_ctx.current_user)
-    for role in current_user.roles:
-        current_user.permissions |= role.permission
 
-    if not request_ctx.current_user.is_admin:
-        pass
-    else:
+    if request_ctx.current_user.is_admin:
         current_user.permissions = ALL_PERMISSIONS
+    else:
+        for role in current_user.roles:
+            current_user.permissions |= role.permission
+
     return make_response(data=current_user)

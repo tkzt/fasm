@@ -1,5 +1,12 @@
 FROM python:3.12-slim
 
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+  libpq-dev \
+  gcc \
+  python3-dev \
+  && rm -rf /var/lib/apt/lists/*
+
 # Install uv.
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
@@ -8,7 +15,8 @@ COPY . /fasm
 
 # Install the application dependencies.
 WORKDIR /fasm
-RUN uv sync --frozen --no-cache
+RUN uv sync --frozen --no-cache --group pg
 
 # Run the application.
-CMD ["/app/.venv/bin/fastapi", "run", "--port", "80", "--host", "0.0.0.0", "--workers", "4"]
+RUN chmod +x /fasm/start.sh
+CMD ["/fasm/start.sh"]

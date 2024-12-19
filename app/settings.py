@@ -5,8 +5,9 @@ from utils.logger import logger
 
 
 class Settings(BaseSettings):
+    ENV: str = "development"
     ADMIN_PWD: str = ""
-    API_PREFIX: str = "/api"
+    API_PREFIX: str = "/api/v1"
     DATABASE_ECHO: bool = False
     DATABASE_MAX_OVERFLOW: int = 64
     POSTGRES_DB_URI: str = ""

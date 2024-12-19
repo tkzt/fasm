@@ -1,7 +1,17 @@
 {
   "cSpell.words": [
     "fasm",
-    "onupdate"
+    "keepalive",
+    "levelname",
+    "levelno",
+    "nodelay",
+    "nopush",
+    "onupdate",
+    "pgdata",
+    "poolclass",
+    "redoc",
+    "referer",
+    "sendfile"
   ],
   "python.analysis.extraPaths": [
     "./app"

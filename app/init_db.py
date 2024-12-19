@@ -1,4 +1,6 @@
-from sqlalchemy import create_engine
+from contextlib import contextmanager
+from datetime import datetime
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, Session
 from sqlmodel import select
 
@@ -20,10 +22,27 @@ def init_user_role(session: Session):
         )
         session.add(admin_user)
     default_role = session.scalar(select(Role).where(Role.name == DEFAULT_ROLE_NAME))
-    if not admin_user:
+    if not default_role:
         default_role = Role(name=DEFAULT_ROLE_NAME, permissions=Permission(0))
         session.add(default_role)
     session.commit()
+
+
+@contextmanager
+def advisory_lock(session: Session, lock_id: int):
+    session.execute(text(f"SELECT pg_advisory_lock({lock_id});"))
+    try:
+        yield
+    finally:
+        session.execute(text(f"SELECT pg_advisory_unlock({lock_id});"))
+
+
+def gen_lock_id():
+    """
+    It only need to make sure that all workers get the same lock_id at a time,
+    so we use timestamp as the lock_id.
+    """
+    return int(datetime.now().timestamp())
 
 
 def init():
@@ -38,4 +57,5 @@ def init():
         bind=engine,
     )
     with SessionLocal() as session:
-        init_user_role(session)
+        with advisory_lock(session, gen_lock_id()):
+            init_user_role(session)

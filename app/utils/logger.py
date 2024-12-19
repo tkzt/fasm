@@ -1,24 +1,30 @@
 """
-https://gist.github.com/shambarick/51c955e55cf61a9e6e339f4c0223b938
+Mainly from:
+    https://gist.github.com/shambarick/51c955e55cf61a9e6e339f4c0223b938
 """
 
 import logging
 import os
+from pathlib import Path
 import sys
 
 from loguru import logger
 from loguru._defaults import LOGURU_FORMAT
 
+from models.environment import Environment
+
 CUSTOM_LOGURU_FORMAT = "{extra[trace_id]:<30} | " + LOGURU_FORMAT
-IS_DEBUG_ENABLED = os.environ.get("IS_DEBUG_ENABLED", True)
-IS_LOCAL_DEV = os.environ.get("LOCAL_DEV", False)
+LOGGING_LEVEL = "DEBUG" if os.environ.get("ENV") != Environment.PROD else "INFO"
+
+LOG_PATH = Path("logs")
+LOG_PATH.mkdir(exist_ok=True)
 
 
 class InterceptHandler(logging.Handler):
     """
     Default handler from examples in loguru document.
     See https://loguru.readthedocs.io/en/stable/overview.html#\
-      entirely-compatible-with-standard-logging
+        entirely-compatible-with-standard-logging
     """
 
     def emit(self, record: logging.LogRecord):
@@ -58,14 +64,23 @@ def setup_logger():
     # set logs output, level and format
     logger.configure(
         handlers=[
-            # AWS CloudWatch does not support ANSI color codes
             {
                 "sink": sys.stdout,
-                "level": logging.DEBUG if IS_DEBUG_ENABLED else logging.INFO,
+                "level": LOGGING_LEVEL,
                 "format": CUSTOM_LOGURU_FORMAT,
-                "colorize": IS_LOCAL_DEV,
-                "backtrace": False,
             },
         ],
         extra={"trace_id": ""},
     )
+
+    logger.add(
+        LOG_PATH / "fasm_{time:YYYY-MM-DD}.log",
+        rotation="100 MB",
+        retention="30 days",
+        compression="zip",
+        level=LOGGING_LEVEL,
+        format=CUSTOM_LOGURU_FORMAT,
+        enqueue=True,
+    )
+
+    logger.debug("Logger setup completed.")

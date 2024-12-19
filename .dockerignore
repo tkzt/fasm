@@ -1,0 +1,15 @@
+.venv
+.vscode
+__pycache__
+*.pyc
+.env
+.env.example
+.gitignore
+.git
+*.tar.gz
+build.sh
+Dockerfile
+.python-version
+docker-compose.yml
+nginx.conf
+README.md

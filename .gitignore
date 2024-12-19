@@ -162,4 +162,4 @@ cython_debug/
 #.idea/
 
 **/local*.ipynb
-**.DS_Store
+.DS_Store
